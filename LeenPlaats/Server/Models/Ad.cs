@@ -10,6 +10,7 @@ public class Ad
     public ApplicationUser Owner { get; set; } = null!;
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
+    public bool IsAvailable { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public ICollection<Photo> Photos { get; set; } = [];

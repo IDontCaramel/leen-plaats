@@ -11,6 +11,7 @@ public record AdDto(
     string Category,
     Guid OwnerId,
     string OwnerDisplayName,
+    bool IsAvailable,
     double? Latitude,
     double? Longitude,
     DateTime CreatedAt,
@@ -25,6 +26,8 @@ public record CreateAdDto(
     double? Latitude,
     double? Longitude
 );
+
+public record SetAvailabilityDto(bool IsAvailable);
 
 public record UpdateAdDto(
     [Required][MaxLength(200)] string Title,

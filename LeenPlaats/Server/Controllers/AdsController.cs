@@ -47,6 +47,21 @@ public class AdsController : ControllerBase
         return Ok(ads.Select(a => MapToDto(a, _storage, Request)));
     }
 
+    [HttpGet("mine")]
+    [Authorize]
+    public async Task<IActionResult> GetMyAds()
+    {
+        var userId = GetCurrentUserId();
+        var ads = await _db.Ads
+            .Include(a => a.Owner)
+            .Include(a => a.Photos)
+            .Where(a => a.OwnerId == userId)
+            .OrderByDescending(a => a.CreatedAt)
+            .ToListAsync();
+
+        return Ok(ads.Select(a => MapToDto(a, _storage, Request)));
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetAd(Guid id)
     {
@@ -187,6 +202,20 @@ public class AdsController : ControllerBase
     private Guid GetCurrentUserId() =>
         Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
+    [HttpPatch("{id:guid}/availability")]
+    [Authorize]
+    public async Task<IActionResult> SetAvailability(Guid id, [FromBody] SetAvailabilityDto dto)
+    {
+        var ad = await _db.Ads.Include(a => a.Owner).Include(a => a.Photos).FirstOrDefaultAsync(a => a.Id == id);
+        if (ad is null) return NotFound();
+        if (ad.OwnerId != GetCurrentUserId()) return Forbid();
+
+        ad.IsAvailable = dto.IsAvailable;
+        ad.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(MapToDto(ad, _storage, Request));
+    }
+
     private static AdDto MapToDto(Ad ad, IFileStorageService storage, HttpRequest request) => new(
         ad.Id,
         ad.Title,
@@ -194,6 +223,7 @@ public class AdsController : ControllerBase
         ad.Category,
         ad.OwnerId,
         ad.Owner?.DisplayName ?? string.Empty,
+        ad.IsAvailable,
         ad.Latitude,
         ad.Longitude,
         ad.CreatedAt,
