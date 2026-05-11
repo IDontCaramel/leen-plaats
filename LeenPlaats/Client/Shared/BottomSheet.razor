@@ -1,0 +1,24 @@
+<div class="sheet-backdrop @(_isOpen ? "sheet-backdrop--visible" : "")" @onclick="HandleBackdropClick">
+</div>
+
+<div class="sheet-panel @(_isOpen ? "sheet-panel--open" : "")">
+    <div class="sheet-handle"></div>
+    <div class="sheet-content">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _isOpen;
+
+    protected override void OnParametersSet()
+    {
+        _isOpen = IsOpen;
+    }
+
+    private async Task HandleBackdropClick() => await OnClose.InvokeAsync();
+}

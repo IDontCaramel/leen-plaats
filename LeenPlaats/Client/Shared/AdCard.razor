@@ -1,0 +1,38 @@
+<div class="ad-card" @onclick="OnClick" role="button" tabindex="0">
+    <div class="ad-card-image">
+        @if (Ad.Photos.Count > 0)
+        {
+            <img src="@Ad.Photos[0].Url" alt="@Ad.Title" />
+        }
+        else
+        {
+            <div class="ad-card-no-image">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+            </div>
+        }
+        <span class="availability-dot @(Ad.IsAvailable ? "dot--available" : "dot--unavailable")"></span>
+    </div>
+    <div class="ad-card-body">
+        <span class="category-badge">@Ad.Category</span>
+        <p class="ad-card-title">@Ad.Title</p>
+        @if (Ad.Latitude.HasValue)
+        {
+            <p class="ad-card-location">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+                Nabij
+            </p>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public AdDto Ad { get; set; } = default!;
+    [Parameter] public EventCallback<AdDto> OnAdClicked { get; set; }
+
+    private async Task OnClick() => await OnAdClicked.InvokeAsync(Ad);
+}

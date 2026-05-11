@@ -1,0 +1,122 @@
+.myads-page {
+  padding: 24px 16px;
+}
+
+.myads-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.myads-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.myads-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.myads-loading, .myads-empty {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--color-muted);
+}
+
+.myads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.myad-item {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.myad-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+
+.myad-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin: 0 0 4px;
+}
+
+.status-badge {
+  font-size: 0.7rem;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.status--available { background-color: var(--color-badge-bg); color: var(--color-badge-text); }
+.status--unavailable { background: #fee2e2; color: #991b1b; }
+.status--pending { background: #fef3c7; color: #92400e; }
+.status--accepted { background: var(--color-badge-bg); color: var(--color-badge-text); }
+.status--declined { background: #fee2e2; color: #991b1b; }
+
+.myad-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toggle-wrap { display: flex; align-items: center; cursor: pointer; }
+.toggle-wrap input { display: none; }
+
+.toggle-track {
+  width: 38px;
+  height: 20px;
+  border-radius: 10px;
+  background-color: var(--color-border);
+  position: relative;
+  transition: background-color 0.2s;
+}
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.2s;
+}
+.toggle-wrap input:checked + .toggle-track { background-color: var(--color-accent); }
+.toggle-wrap input:checked + .toggle-track::after { transform: translateX(18px); }
+
+.chevron { width: 18px; height: 18px; color: var(--color-muted); transition: transform 0.2s; }
+.chevron--up { transform: rotate(180deg); }
+
+.myad-requests {
+  padding: 4px 16px 16px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.request-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: var(--color-bg);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.request-name { font-weight: 600; font-size: 0.9rem; margin: 0; }
+.request-message { font-size: 0.8rem; color: var(--color-muted); margin: 2px 0; }
+.request-actions { display: flex; gap: 6px; }

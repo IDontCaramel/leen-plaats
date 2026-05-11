@@ -1,0 +1,170 @@
+@inject AdService AdSvc
+@inject NotificationService NotifySvc
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<BottomSheet IsOpen="IsOpen" OnClose="OnClose">
+    @if (Ad is not null)
+    {
+        <div class="detail-page">
+            @if (Ad.Photos.Count > 0)
+            {
+                <div class="photo-carousel">
+                    <img src="@Ad.Photos[_photoIndex].Url" alt="@Ad.Title" class="carousel-img" />
+                    @if (Ad.Photos.Count > 1)
+                    {
+                        <button class="carousel-btn carousel-btn--prev" @onclick="PrevPhoto">‹</button>
+                        <button class="carousel-btn carousel-btn--next" @onclick="NextPhoto">›</button>
+                        <div class="carousel-dots">
+                            @for (int i = 0; i < Ad.Photos.Count; i++)
+                            {
+                                var idx = i;
+                                <span class="dot @(_photoIndex == idx ? "dot--active" : "")" @onclick="() => _photoIndex = idx"></span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="detail-body">
+                <div class="detail-header">
+                    <span class="category-badge">@Ad.Category</span>
+                    <span class="availability-label @(Ad.IsAvailable ? "avail--yes" : "avail--no")">
+                        @(Ad.IsAvailable ? "Beschikbaar" : "Niet beschikbaar")
+                    </span>
+                </div>
+
+                <h2 class="detail-title">@Ad.Title</h2>
+                <p class="detail-description">@Ad.Description</p>
+
+                <p class="detail-meta">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    @Ad.OwnerDisplayName
+                </p>
+            </div>
+
+            <div class="detail-action">
+                @if (Auth.IsAuthenticated && Auth.UserId == Ad.OwnerId.ToString())
+                {
+                    <!-- Owner view: incoming requests -->
+                    <div class="requests-section">
+                        <h3 class="requests-heading">Leenverzoeken (@_requests.Count)</h3>
+                        @if (_requests.Count == 0)
+                        {
+                            <p class="text-muted small">Nog geen verzoeken.</p>
+                        }
+                        @foreach (var req in _requests)
+                        {
+                            <div class="request-row">
+                                <div>
+                                    <p class="request-name">@req.RequesterDisplayName</p>
+                                    @if (!string.IsNullOrEmpty(req.Message))
+                                    {
+                                        <p class="request-message">@req.Message</p>
+                                    }
+                                    <span class="status-badge status--@req.Status.ToString().ToLower()">@req.Status</span>
+                                </div>
+                                @if (req.Status == LendRequestStatus.Pending)
+                                {
+                                    <div class="request-actions">
+                                        <button class="btn btn-primary btn-sm" @onclick="() => AcceptRequest(req.Id)">Accepteren</button>
+                                        <button class="btn btn-outline-secondary btn-sm" @onclick="() => DeclineRequest(req.Id)">Weigeren</button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else if (Ad.IsAvailable)
+                {
+                    <button class="btn btn-primary w-100" @onclick="RequestLend" disabled="@_actionLoading">
+                        @(_actionLoading ? "Bezig…" : "Aanvragen om te lenen")
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-outline-primary w-100" @onclick="ToggleNotify" disabled="@_actionLoading">
+                        @(_subscribed ? "Melding annuleren" : "Meld mij wanneer beschikbaar")
+                    </button>
+                }
+
+                @if (_actionMessage is not null)
+                {
+                    <p class="action-message">@_actionMessage</p>
+                }
+            </div>
+        </div>
+    }
+</BottomSheet>
+
+@code {
+    [Parameter] public AdDto? Ad { get; set; }
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private int _photoIndex;
+    private List<LendRequestDto> _requests = [];
+    private bool _subscribed;
+    private bool _actionLoading;
+    private string? _actionMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Ad is null) return;
+        _photoIndex = 0;
+        _actionMessage = null;
+        if (Auth.IsAuthenticated && Auth.UserId == Ad.OwnerId.ToString())
+        {
+            _requests = await AdSvc.GetRequestsForAdAsync(Ad.Id);
+        }
+    }
+
+    private void PrevPhoto() => _photoIndex = (_photoIndex - 1 + (Ad?.Photos.Count ?? 1)) % (Ad?.Photos.Count ?? 1);
+    private void NextPhoto() => _photoIndex = (_photoIndex + 1) % (Ad?.Photos.Count ?? 1);
+
+    private async Task RequestLend()
+    {
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        _actionLoading = true;
+        try
+        {
+            await AdSvc.CreateLendRequestAsync(new CreateLendRequestDto(Ad!.Id, null));
+            _actionMessage = "Verzoek verstuurd!";
+        }
+        catch
+        {
+            _actionMessage = "Mislukt. Probeer opnieuw.";
+        }
+        finally { _actionLoading = false; }
+    }
+
+    private async Task ToggleNotify()
+    {
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        _actionLoading = true;
+        try
+        {
+            if (_subscribed)
+                await NotifySvc.UnsubscribeAsync(Ad!.Id);
+            else
+                await NotifySvc.SubscribeAsync(Ad!.Id);
+            _subscribed = !_subscribed;
+        }
+        catch { _actionMessage = "Mislukt. Probeer opnieuw."; }
+        finally { _actionLoading = false; }
+    }
+
+    private async Task AcceptRequest(Guid id)
+    {
+        await AdSvc.AcceptRequestAsync(id);
+        _requests = await AdSvc.GetRequestsForAdAsync(Ad!.Id);
+    }
+
+    private async Task DeclineRequest(Guid id)
+    {
+        await AdSvc.DeclineRequestAsync(id);
+        _requests = await AdSvc.GetRequestsForAdAsync(Ad!.Id);
+    }
+}

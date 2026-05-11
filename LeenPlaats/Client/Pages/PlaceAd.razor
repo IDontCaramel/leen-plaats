@@ -1,0 +1,174 @@
+@inject AdService AdSvc
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject AuthService Auth
+
+<BottomSheet IsOpen="IsOpen" OnClose="OnClose">
+    <div class="place-ad">
+        <div class="sheet-title-row">
+            <h2 class="sheet-title">Advertentie plaatsen</h2>
+            <ThemeToggle />
+        </div>
+
+        @if (!Auth.IsAuthenticated)
+        {
+            <p class="text-muted">Je moet <a href="/login">ingelogd</a> zijn om een advertentie te plaatsen.</p>
+        }
+        else
+        {
+            <EditForm Model="_model" OnValidSubmit="Submit" class="place-form">
+                <DataAnnotationsValidator />
+
+                <div class="photo-upload-row">
+                    <label class="photo-upload-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        Foto toevoegen
+                        <InputFile OnChange="OnFilesSelected" accept="image/*" capture="environment" multiple style="display:none" />
+                    </label>
+                    @foreach (var preview in _previews)
+                    {
+                        <img src="@preview" class="photo-preview" alt="preview" />
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Titel</label>
+                    <InputText @bind-Value="_model.Title" class="form-control" placeholder="Bijv. Boormachine Bosch" />
+                    <ValidationMessage For="() => _model.Title" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Omschrijving</label>
+                    <InputTextArea @bind-Value="_model.Description" class="form-control" rows="3" placeholder="Beschrijf het item kort" />
+                    <ValidationMessage For="() => _model.Description" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Categorie</label>
+                    <InputSelect @bind-Value="_model.Category" class="form-select">
+                        <option value="">Kies een categorie</option>
+                        <option value="Gereedschap">Gereedschap</option>
+                        <option value="Keuken">Keuken</option>
+                        <option value="Sport">Sport</option>
+                        <option value="Tuin">Tuin</option>
+                        <option value="Electronica">Electronica</option>
+                        <option value="Overig">Overig</option>
+                    </InputSelect>
+                    <ValidationMessage For="() => _model.Category" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Locatie</label>
+                    <div class="location-row">
+                        <InputText @bind-Value="_model.LocationText" class="form-control" placeholder="Bijv. Amsterdam-Noord" />
+                        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="GetGps" disabled="@_gpsLoading">
+                            @(_gpsLoading ? "…" : "GPS")
+                        </button>
+                    </div>
+                </div>
+
+                @if (_error is not null)
+                {
+                    <p class="text-danger small">@_error</p>
+                }
+
+                <button type="submit" class="btn btn-primary w-100 mt-2" disabled="@_loading">
+                    @(_loading ? "Plaatsen…" : "Advertentie plaatsen")
+                </button>
+            </EditForm>
+        }
+    </div>
+</BottomSheet>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private PlaceAdModel _model = new();
+    private List<string> _previews = [];
+    private List<IBrowserFile> _files = [];
+    private bool _loading;
+    private bool _gpsLoading;
+    private string? _error;
+
+    private class PlaceAdModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Title { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Description { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Category { get; set; } = "";
+        public string LocationText { get; set; } = "";
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+    }
+
+    private record GpsResult(double Lat, double Lng);
+
+    private async Task OnFilesSelected(InputFileChangeEventArgs e)
+    {
+        _files = e.GetMultipleFiles(10).ToList();
+        _previews.Clear();
+        foreach (var file in _files)
+        {
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).ReadAsync(buffer);
+            _previews.Add($"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}");
+        }
+    }
+
+    private async Task GetGps()
+    {
+        _gpsLoading = true;
+        try
+        {
+            var result = await JS.InvokeAsync<GpsResult>("getLocation");
+            _model.Latitude = result.Lat;
+            _model.Longitude = result.Lng;
+            _model.LocationText = $"{result.Lat:F4}, {result.Lng:F4}";
+        }
+        catch
+        {
+            _error = "Locatie ophalen mislukt. Vul handmatig in.";
+        }
+        finally
+        {
+            _gpsLoading = false;
+        }
+    }
+
+    private async Task Submit()
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            var dto = new CreateAdDto(_model.Title, _model.Description, _model.Category, _model.Latitude, _model.Longitude);
+            var created = await AdSvc.CreateAdAsync(dto);
+            if (created is not null)
+            {
+                foreach (var file in _files)
+                {
+                    using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+                    await AdSvc.UploadPhotoAsync(created.Id, stream, file.Name);
+                }
+                _model = new();
+                _previews.Clear();
+                _files.Clear();
+                await OnClose.InvokeAsync();
+            }
+        }
+        catch
+        {
+            _error = "Plaatsen mislukt. Probeer opnieuw.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

@@ -1,0 +1,145 @@
+@page "/mijn"
+@inject AdService AdSvc
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<PageTitle>Leenplaats — Mijn advertenties</PageTitle>
+
+<div class="myads-page">
+    <div class="myads-header">
+        <h1 class="myads-title">Mijn advertenties</h1>
+        <div class="myads-actions">
+            <ThemeToggle />
+            <button class="btn btn-outline-secondary btn-sm" @onclick="Logout">Uitloggen</button>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="myads-loading">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Laden…</span>
+            </div>
+        </div>
+    }
+    else if (_ads.Count == 0)
+    {
+        <div class="myads-empty">
+            <p>Je hebt nog geen advertenties geplaatst.</p>
+        </div>
+    }
+    else
+    {
+        <div class="myads-list">
+            @foreach (var ad in _ads)
+            {
+                <div class="myad-item">
+                    <div class="myad-row" @onclick="() => ToggleExpand(ad.Id)">
+                        <div class="myad-info">
+                            <p class="myad-title">@ad.Title</p>
+                            <span class="status-badge @(ad.IsAvailable ? "status--available" : "status--unavailable")">
+                                @(ad.IsAvailable ? "Beschikbaar" : "Uitgeleend")
+                            </span>
+                        </div>
+                        <div class="myad-controls">
+                            <label class="toggle-wrap" title="Beschikbaarheid">
+                                <input type="checkbox" checked="@ad.IsAvailable" @onchange="e => SetAvailability(ad.Id, (bool)e.Value!)" />
+                                <span class="toggle-track"></span>
+                            </label>
+                            <svg class="chevron @(_expanded.Contains(ad.Id) ? "chevron--up" : "")" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    @if (_expanded.Contains(ad.Id))
+                    {
+                        <div class="myad-requests">
+                            @if (!_requests.ContainsKey(ad.Id))
+                            {
+                                <p class="text-muted small">Laden…</p>
+                            }
+                            else if (_requests[ad.Id].Count == 0)
+                            {
+                                <p class="text-muted small">Geen verzoeken.</p>
+                            }
+                            else
+                            {
+                                @foreach (var req in _requests[ad.Id])
+                                {
+                                    <div class="request-row">
+                                        <div>
+                                            <p class="request-name">@req.RequesterDisplayName</p>
+                                            @if (!string.IsNullOrEmpty(req.Message))
+                                            {
+                                                <p class="request-message">@req.Message</p>
+                                            }
+                                            <span class="status-badge status--@req.Status.ToString().ToLower()">@req.Status</span>
+                                        </div>
+                                        @if (req.Status == LendRequestStatus.Pending)
+                                        {
+                                            <div class="request-actions">
+                                                <button class="btn btn-primary btn-sm" @onclick="() => AcceptRequest(ad.Id, req.Id)">Accepteren</button>
+                                                <button class="btn btn-outline-secondary btn-sm" @onclick="() => DeclineRequest(ad.Id, req.Id)">Weigeren</button>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<AdDto> _ads = [];
+    private Dictionary<Guid, List<LendRequestDto>> _requests = [];
+    private HashSet<Guid> _expanded = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        _ads = await AdSvc.GetMyAdsAsync();
+        _loading = false;
+    }
+
+    private async Task ToggleExpand(Guid adId)
+    {
+        if (_expanded.Contains(adId))
+        {
+            _expanded.Remove(adId);
+            return;
+        }
+        _expanded.Add(adId);
+        if (!_requests.ContainsKey(adId))
+            _requests[adId] = await AdSvc.GetRequestsForAdAsync(adId);
+    }
+
+    private async Task SetAvailability(Guid adId, bool value)
+    {
+        await AdSvc.SetAvailabilityAsync(adId, value);
+        _ads = await AdSvc.GetMyAdsAsync();
+    }
+
+    private async Task AcceptRequest(Guid adId, Guid requestId)
+    {
+        await AdSvc.AcceptRequestAsync(requestId);
+        _requests[adId] = await AdSvc.GetRequestsForAdAsync(adId);
+    }
+
+    private async Task DeclineRequest(Guid adId, Guid requestId)
+    {
+        await AdSvc.DeclineRequestAsync(requestId);
+        _requests[adId] = await AdSvc.GetRequestsForAdAsync(adId);
+    }
+
+    private async Task Logout()
+    {
+        await Auth.LogoutAsync();
+        Nav.NavigateTo("/");
+    }
+}

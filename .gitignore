@@ -203,3 +203,8 @@ __pycache__/
 Thumbs.db
 # Environment secrets
 .env
+/docs
+CLAUDE.md
+functionalities
+design.md
+functionalities

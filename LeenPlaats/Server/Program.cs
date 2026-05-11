@@ -65,7 +65,7 @@ builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
 // CORS — allow the Blazor client in development
 var allowedOrigins = builder.Configuration["AllowedOrigins"]?.Split(',')
-    ?? ["http://localhost:5003", "https://localhost:7279"];
+    ?? ["http://localhost:5167", "https://localhost:7154"];
 
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>

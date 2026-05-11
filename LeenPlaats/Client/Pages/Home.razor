@@ -1,7 +1,89 @@
-﻿@page "/"
+@page "/"
+@inject AdService AdSvc
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Leenplaats — Zoeken</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="browse-page">
+    <SearchBar OnChanged="OnSearchChanged" />
 
-Welcome to your new app.
+    @if (_offline)
+    {
+        <div class="offline-banner">Mogelijk verouderd — geen verbinding</div>
+    }
+
+    @if (_loading)
+    {
+        <div class="browse-loading">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Laden…</span>
+            </div>
+        </div>
+    }
+    else if (_ads.Count == 0)
+    {
+        <div class="browse-empty">
+            <p>Geen advertenties gevonden.</p>
+        </div>
+    }
+    else
+    {
+        <div class="ad-grid">
+            @foreach (var ad in _ads)
+            {
+                <AdCard Ad="ad" OnAdClicked="OpenDetail" />
+            }
+        </div>
+    }
+</div>
+
+<AdDetail Ad="_selectedAd" IsOpen="_detailOpen" OnClose="CloseDetail" />
+
+@code {
+    private List<AdDto> _ads = [];
+    private AdDto? _selectedAd;
+    private bool _detailOpen;
+    private bool _loading = true;
+    private bool _offline;
+
+    private string? _search;
+    private string? _category;
+    private bool _onlyAvailable;
+
+    protected override async Task OnInitializedAsync() => await LoadAds();
+
+    private async Task OnSearchChanged((string? Search, string? Category, bool OnlyAvailable) args)
+    {
+        (_search, _category, _onlyAvailable) = args;
+        await LoadAds();
+    }
+
+    private async Task LoadAds()
+    {
+        _loading = true;
+        _offline = false;
+        try
+        {
+            _ads = await AdSvc.GetAdsAsync(_search, _category, _onlyAvailable);
+        }
+        catch
+        {
+            _offline = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OpenDetail(AdDto ad)
+    {
+        _selectedAd = ad;
+        _detailOpen = true;
+    }
+
+    private void CloseDetail()
+    {
+        _detailOpen = false;
+        _selectedAd = null;
+    }
+}

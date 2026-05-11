@@ -1,0 +1,31 @@
+.browse-page {
+  min-height: 100%;
+  background-color: var(--color-bg);
+}
+
+.offline-banner {
+  background-color: #fef3c7;
+  color: #92400e;
+  text-align: center;
+  font-size: 0.8rem;
+  padding: 6px 16px;
+}
+
+.browse-loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.browse-empty {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--color-muted);
+}
+
+.ad-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 12px;
+}

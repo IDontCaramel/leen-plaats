@@ -1,0 +1,54 @@
+<div class="search-bar-wrapper">
+    <div class="search-input-row">
+        <div class="search-input-wrap">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="search" class="search-input" placeholder="Zoek een item…"
+                   value="@SearchText" @oninput="OnSearchInput" />
+        </div>
+        <label class="available-toggle" title="Alleen beschikbaar">
+            <input type="checkbox" checked="@OnlyAvailable" @onchange="OnAvailableChanged" />
+            <span class="toggle-track"></span>
+        </label>
+    </div>
+
+    <div class="category-chips">
+        <button class="chip @(SelectedCategory == null ? "chip--active" : "")" @onclick='() => SelectCategory(null)'>Alles</button>
+        @foreach (var cat in Categories)
+        {
+            <button class="chip @(SelectedCategory == cat ? "chip--active" : "")" @onclick="() => SelectCategory(cat)">@cat</button>
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly string[] Categories = ["Gereedschap", "Keuken", "Sport", "Tuin", "Electronica", "Overig"];
+
+    [Parameter] public EventCallback<(string? Search, string? Category, bool OnlyAvailable)> OnChanged { get; set; }
+
+    private string? SearchText;
+    private string? SelectedCategory;
+    private bool OnlyAvailable;
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        SearchText = e.Value?.ToString();
+        await Notify();
+    }
+
+    private async Task OnAvailableChanged(ChangeEventArgs e)
+    {
+        OnlyAvailable = (bool)(e.Value ?? false);
+        await Notify();
+    }
+
+    private async Task SelectCategory(string? cat)
+    {
+        SelectedCategory = cat;
+        await Notify();
+    }
+
+    private async Task Notify() =>
+        await OnChanged.InvokeAsync((SearchText, SelectedCategory, OnlyAvailable));
+}

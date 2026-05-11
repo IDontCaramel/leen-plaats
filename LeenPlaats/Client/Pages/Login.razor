@@ -1,0 +1,136 @@
+@page "/login"
+@inject AuthService Auth
+@inject AdService AdSvc
+@inject NavigationManager Nav
+@inject HttpClient Http
+
+<div class="login-page">
+    <div class="login-header">
+        <h1 class="login-title">Leenplaats</h1>
+        <p class="login-subtitle">Lenen en uitlenen in je buurt</p>
+    </div>
+
+    <div class="login-tabs">
+        <button class="tab-btn @(_tab == "login" ? "tab-btn--active" : "")" @onclick='() => _tab = "login"'>Inloggen</button>
+        <button class="tab-btn @(_tab == "register" ? "tab-btn--active" : "")" @onclick='() => _tab = "register"'>Registreren</button>
+    </div>
+
+    @if (_tab == "login")
+    {
+        <EditForm Model="_loginModel" OnValidSubmit="DoLogin" class="login-form">
+            <DataAnnotationsValidator />
+            <div class="mb-3">
+                <label class="form-label">E-mailadres</label>
+                <InputText @bind-Value="_loginModel.Email" class="form-control" type="email" autocomplete="email" />
+                <ValidationMessage For="() => _loginModel.Email" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Wachtwoord</label>
+                <InputText @bind-Value="_loginModel.Password" class="form-control" type="password" autocomplete="current-password" />
+                <ValidationMessage For="() => _loginModel.Password" />
+            </div>
+            @if (_error is not null)
+            {
+                <p class="text-danger small">@_error</p>
+            }
+            <button type="submit" class="btn btn-primary w-100" disabled="@_loading">
+                @(_loading ? "Bezig…" : "Inloggen")
+            </button>
+        </EditForm>
+    }
+    else
+    {
+        <EditForm Model="_registerModel" OnValidSubmit="DoRegister" class="login-form">
+            <DataAnnotationsValidator />
+            <div class="mb-3">
+                <label class="form-label">Naam</label>
+                <InputText @bind-Value="_registerModel.DisplayName" class="form-control" autocomplete="name" />
+                <ValidationMessage For="() => _registerModel.DisplayName" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">E-mailadres</label>
+                <InputText @bind-Value="_registerModel.Email" class="form-control" type="email" autocomplete="email" />
+                <ValidationMessage For="() => _registerModel.Email" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Wachtwoord</label>
+                <InputText @bind-Value="_registerModel.Password" class="form-control" type="password" autocomplete="new-password" />
+                <ValidationMessage For="() => _registerModel.Password" />
+            </div>
+            @if (_error is not null)
+            {
+                <p class="text-danger small">@_error</p>
+            }
+            <button type="submit" class="btn btn-primary w-100" disabled="@_loading">
+                @(_loading ? "Bezig…" : "Registreren")
+            </button>
+        </EditForm>
+    }
+</div>
+
+@code {
+    private string _tab = "login";
+    private bool _loading;
+    private string? _error;
+
+    private LoginDto _loginModel = new();
+    private RegisterDto _registerModel = new();
+
+    private async Task DoLogin()
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/auth/login", _loginModel);
+            if (!response.IsSuccessStatusCode)
+            {
+                _error = "Onjuist e-mailadres of wachtwoord.";
+                return;
+            }
+            var result = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+            if (result is not null)
+            {
+                await Auth.LoginAsync(result.Token, result.UserId, result.DisplayName);
+                Nav.NavigateTo("/");
+            }
+        }
+        catch
+        {
+            _error = "Er ging iets mis. Probeer opnieuw.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task DoRegister()
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/auth/register", _registerModel);
+            if (!response.IsSuccessStatusCode)
+            {
+                _error = "Registratie mislukt. Controleer je gegevens.";
+                return;
+            }
+            var result = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+            if (result is not null)
+            {
+                await Auth.LoginAsync(result.Token, result.UserId, result.DisplayName);
+                Nav.NavigateTo("/");
+            }
+        }
+        catch
+        {
+            _error = "Er ging iets mis. Probeer opnieuw.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

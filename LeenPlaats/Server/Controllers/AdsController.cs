@@ -43,8 +43,8 @@ public class AdsController : ControllerBase
             ? query.OrderBy(a => a.CreatedAt)
             : query.OrderByDescending(a => a.CreatedAt);
 
-        var ads = await query.Select(a => MapToDto(a)).ToListAsync();
-        return Ok(ads);
+        var ads = await query.ToListAsync();
+        return Ok(ads.Select(a => MapToDto(a, _storage, Request)));
     }
 
     [HttpGet("{id:guid}")]
@@ -56,7 +56,7 @@ public class AdsController : ControllerBase
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (ad is null) return NotFound();
-        return Ok(MapToDto(ad));
+        return Ok(MapToDto(ad, _storage, Request));
     }
 
     [HttpPost]
@@ -81,7 +81,7 @@ public class AdsController : ControllerBase
 
         await _db.Entry(ad).Reference(a => a.Owner).LoadAsync();
 
-        return CreatedAtAction(nameof(GetAd), new { id = ad.Id }, MapToDto(ad));
+        return CreatedAtAction(nameof(GetAd), new { id = ad.Id }, MapToDto(ad, _storage, Request));
     }
 
     [HttpPut("{id:guid}")]
@@ -100,7 +100,7 @@ public class AdsController : ControllerBase
         ad.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-        return Ok(MapToDto(ad));
+        return Ok(MapToDto(ad, _storage, Request));
     }
 
     [HttpDelete("{id:guid}")]
@@ -145,6 +145,27 @@ public class AdsController : ControllerBase
         return Ok(new PhotoDto(photo.Id, _storage.GetUrl(Request, photo.FileName)));
     }
 
+    [HttpGet("{id:guid}/requests")]
+    [Authorize]
+    public async Task<IActionResult> GetRequestsForAd(Guid id)
+    {
+        var ad = await _db.Ads.FirstOrDefaultAsync(a => a.Id == id);
+        if (ad is null) return NotFound();
+        if (ad.OwnerId != GetCurrentUserId()) return Forbid();
+
+        var requests = await _db.LendRequests
+            .Include(r => r.Requester)
+            .Include(r => r.Ad)
+            .Where(r => r.AdId == id)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+
+        return Ok(requests.Select(r => new LendRequestDto(
+            r.Id, r.AdId, r.Ad?.Title ?? string.Empty,
+            r.RequesterId, r.Requester?.DisplayName ?? string.Empty,
+            r.Status, r.Message, r.CreatedAt)));
+    }
+
     [HttpDelete("{adId:guid}/photos/{photoId:guid}")]
     [Authorize]
     public async Task<IActionResult> DeletePhoto(Guid adId, Guid photoId)
@@ -166,7 +187,7 @@ public class AdsController : ControllerBase
     private Guid GetCurrentUserId() =>
         Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-    private AdDto MapToDto(Ad ad) => new(
+    private static AdDto MapToDto(Ad ad, IFileStorageService storage, HttpRequest request) => new(
         ad.Id,
         ad.Title,
         ad.Description,
@@ -177,6 +198,6 @@ public class AdsController : ControllerBase
         ad.Longitude,
         ad.CreatedAt,
         ad.UpdatedAt,
-        ad.Photos.Select(p => new PhotoDto(p.Id, _storage.GetUrl(Request, p.FileName))).ToList()
+        ad.Photos.Select(p => new PhotoDto(p.Id, storage.GetUrl(request, p.FileName))).ToList()
     );
 }
