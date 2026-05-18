@@ -15,25 +15,30 @@ window.getLocation = () => new Promise((resolve, reject) =>
 );
 
 window.initMap = (elementId, lat, lng) => {
+    if (typeof L === 'undefined') return;
     const el = document.getElementById(elementId);
-    if (!el) return;
-    const map = L.map(el, {
-        zoomControl: false,
-        dragging: false,
-        scrollWheelZoom: false,
-        doubleClickZoom: false,
-        boxZoom: false,
-        keyboard: false
-    });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(map);
-    const circle = L.circle([lat, lng], {
-        radius: 1000,
-        color: '#2d6a4f',
-        fillColor: '#52b788',
-        fillOpacity: 0.2,
-        weight: 2
-    }).addTo(map);
-    map.fitBounds(circle.getBounds());
+    if (!el || el.offsetWidth === 0 || el.offsetHeight === 0) return;
+    try {
+        const map = L.map(el, {
+            zoomControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false
+        });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+        const circle = L.circle([lat, lng], {
+            radius: 1000,
+            color: '#2d6a4f',
+            fillColor: '#52b788',
+            fillOpacity: 0.2,
+            weight: 2
+        }).addTo(map);
+        map.fitBounds(circle.getBounds());
+    } catch (e) {
+        console.warn('initMap failed:', e);
+    }
 };

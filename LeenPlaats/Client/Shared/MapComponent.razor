@@ -17,6 +17,7 @@
         if (firstRender && Latitude.HasValue && Longitude.HasValue && !_initialized)
         {
             _initialized = true;
+            await Task.Delay(100);
             await JS.InvokeVoidAsync("initMap", _mapId, Latitude.Value, Longitude.Value);
         }
     }
