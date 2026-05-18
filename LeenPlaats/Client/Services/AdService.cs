@@ -89,6 +89,13 @@ public class AdService
         return await _http.GetFromJsonAsync<List<AdDto>>("api/ads/mine") ?? [];
     }
 
+    public async Task DeleteAdAsync(Guid adId)
+    {
+        SetAuthHeader();
+        var response = await _http.DeleteAsync($"api/ads/{adId}");
+        response.EnsureSuccessStatusCode();
+    }
+
     private void SetAuthHeader()
     {
         var token = _auth.GetToken();
