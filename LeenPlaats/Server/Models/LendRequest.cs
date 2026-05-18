@@ -11,5 +11,6 @@ public class LendRequest
     public ApplicationUser Requester { get; set; } = null!;
     public LendRequestStatus Status { get; set; } = LendRequestStatus.Pending;
     public string? Message { get; set; }
+    public DateTime? LendUntil { get; set; }
     public DateTime CreatedAt { get; set; }
 }
