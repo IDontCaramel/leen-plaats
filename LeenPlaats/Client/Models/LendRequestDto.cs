@@ -10,7 +10,8 @@ public record LendRequestDto(
     string RequesterDisplayName,
     LendRequestStatus Status,
     string? Message,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    DateTime? LendUntil
 );
 
-public record CreateLendRequestDto(Guid AdId, string? Message);
+public record CreateLendRequestDto(Guid AdId, string? Message, DateTime? LendUntil);

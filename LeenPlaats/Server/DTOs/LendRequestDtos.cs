@@ -5,7 +5,8 @@ namespace Server.DTOs;
 
 public record CreateLendRequestDto(
     [Required] Guid AdId,
-    [MaxLength(500)] string? Message
+    [MaxLength(500)] string? Message,
+    DateTime? LendUntil
 );
 
 public record LendRequestDto(
@@ -16,5 +17,6 @@ public record LendRequestDto(
     string RequesterDisplayName,
     LendRequestStatus Status,
     string? Message,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    DateTime? LendUntil
 );
