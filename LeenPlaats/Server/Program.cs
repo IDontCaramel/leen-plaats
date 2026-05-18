@@ -62,6 +62,7 @@ builder.Services.AddAuthorization();
 
 // Static files for photo uploads
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddHostedService<LendExpiryService>();
 
 // CORS — allow the Blazor client in development
 var allowedOrigins = builder.Configuration["AllowedOrigins"]?.Split(',')
