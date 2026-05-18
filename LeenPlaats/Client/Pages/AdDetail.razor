@@ -62,6 +62,10 @@
                             <div class="request-row">
                                 <div>
                                     <p class="request-name">@req.RequesterDisplayName</p>
+                                    @if (req.LendUntil.HasValue)
+                                    {
+                                        <p class="text-muted small">Terug voor: @req.LendUntil.Value.ToString("dd-MM-yyyy")</p>
+                                    }
                                     @if (!string.IsNullOrEmpty(req.Message))
                                     {
                                         <p class="request-message">@req.Message</p>
@@ -81,6 +85,11 @@
                 }
                 else if (Ad.IsAvailable)
                 {
+                    <div class="mb-2">
+                        <label class="form-label small text-muted">Tot wanneer wil je lenen? (optioneel)</label>
+                        <InputDate class="form-control form-control-sm" @bind-Value="_lendUntil"
+                                   min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" />
+                    </div>
                     <button class="btn btn-primary w-100" @onclick="RequestLend" disabled="@_actionLoading">
                         @(_actionLoading ? "Bezig…" : "Aanvragen om te lenen")
                     </button>
@@ -111,12 +120,14 @@
     private bool _subscribed;
     private bool _actionLoading;
     private string? _actionMessage;
+    private DateTime? _lendUntil;
 
     protected override async Task OnParametersSetAsync()
     {
         if (Ad is null) return;
         _photoIndex = 0;
         _actionMessage = null;
+        _lendUntil = null;
         if (Auth.IsAuthenticated && Auth.UserId == Ad.OwnerId.ToString())
         {
             _requests = await AdSvc.GetRequestsForAdAsync(Ad.Id);
@@ -132,7 +143,7 @@
         _actionLoading = true;
         try
         {
-            await AdSvc.CreateLendRequestAsync(new CreateLendRequestDto(Ad!.Id, null));
+            await AdSvc.CreateLendRequestAsync(new CreateLendRequestDto(Ad!.Id, null, _lendUntil));
             _actionMessage = "Verzoek verstuurd!";
         }
         catch

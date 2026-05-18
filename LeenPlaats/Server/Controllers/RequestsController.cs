@@ -51,6 +51,7 @@ public class RequestsController : ControllerBase
             AdId = dto.AdId,
             RequesterId = userId,
             Message = dto.Message,
+            LendUntil = dto.LendUntil,
             Status = LendRequestStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };
@@ -98,6 +99,7 @@ public class RequestsController : ControllerBase
         r.Requester?.DisplayName ?? string.Empty,
         r.Status,
         r.Message,
-        r.CreatedAt
+        r.CreatedAt,
+        r.LendUntil
     );
 }

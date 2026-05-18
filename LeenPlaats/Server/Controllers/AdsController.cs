@@ -178,7 +178,7 @@ public class AdsController : ControllerBase
         return Ok(requests.Select(r => new LendRequestDto(
             r.Id, r.AdId, r.Ad?.Title ?? string.Empty,
             r.RequesterId, r.Requester?.DisplayName ?? string.Empty,
-            r.Status, r.Message, r.CreatedAt)));
+            r.Status, r.Message, r.CreatedAt, r.LendUntil)));
     }
 
     [HttpDelete("{adId:guid}/photos/{photoId:guid}")]

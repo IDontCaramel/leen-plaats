@@ -85,6 +85,10 @@
                                     <div class="request-row">
                                         <div>
                                             <p class="request-name">@req.RequesterDisplayName</p>
+                                            @if (req.LendUntil.HasValue)
+                                            {
+                                                <p class="text-muted small">Terug voor: @req.LendUntil.Value.ToString("dd-MM-yyyy")</p>
+                                            }
                                             @if (!string.IsNullOrEmpty(req.Message))
                                             {
                                                 <p class="request-message">@req.Message</p>
