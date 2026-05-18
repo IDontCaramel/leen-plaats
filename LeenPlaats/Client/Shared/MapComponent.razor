@@ -1,0 +1,23 @@
+@inject IJSRuntime JS
+
+@if (Latitude.HasValue && Longitude.HasValue)
+{
+    <div id="@_mapId" style="height: 200px; border-radius: 8px; overflow: hidden; margin-bottom: 1rem;"></div>
+}
+
+@code {
+    [Parameter] public double? Latitude { get; set; }
+    [Parameter] public double? Longitude { get; set; }
+
+    private readonly string _mapId = $"map-{Guid.NewGuid():N}";
+    private bool _initialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Latitude.HasValue && Longitude.HasValue && !_initialized)
+        {
+            _initialized = true;
+            await JS.InvokeVoidAsync("initMap", _mapId, Latitude.Value, Longitude.Value);
+        }
+    }
+}
