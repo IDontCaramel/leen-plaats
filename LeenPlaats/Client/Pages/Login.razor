@@ -85,7 +85,9 @@
             var response = await Http.PostAsJsonAsync("api/auth/login", _loginModel);
             if (!response.IsSuccessStatusCode)
             {
-                _error = "Onjuist e-mailadres of wachtwoord.";
+                _error = await response.Content.ReadAsStringAsync();
+                if (string.IsNullOrWhiteSpace(_error))
+                    _error = "Inloggen mislukt. Probeer opnieuw.";
                 return;
             }
             var result = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
@@ -97,7 +99,7 @@
         }
         catch
         {
-            _error = "Er ging iets mis. Probeer opnieuw.";
+            _error = "Geen verbinding. Controleer je internet.";
         }
         finally
         {
@@ -114,7 +116,10 @@
             var response = await Http.PostAsJsonAsync("api/auth/register", _registerModel);
             if (!response.IsSuccessStatusCode)
             {
-                _error = "Registratie mislukt. Controleer je gegevens.";
+                var errors = await response.Content.ReadFromJsonAsync<List<string>>();
+                _error = errors is { Count: > 0 }
+                    ? string.Join("\n", errors)
+                    : "Registratie mislukt. Controleer je gegevens.";
                 return;
             }
             var result = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
@@ -126,7 +131,7 @@
         }
         catch
         {
-            _error = "Er ging iets mis. Probeer opnieuw.";
+            _error = "Geen verbinding. Controleer je internet.";
         }
         finally
         {
