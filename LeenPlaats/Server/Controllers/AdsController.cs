@@ -212,6 +212,13 @@ public class AdsController : ControllerBase
 
         ad.IsAvailable = dto.IsAvailable;
         ad.UpdatedAt = DateTime.UtcNow;
+
+        if (dto.IsAvailable)
+        {
+            var subs = await _db.NotifySubscriptions.Where(n => n.AdId == id).ToListAsync();
+            _db.NotifySubscriptions.RemoveRange(subs);
+        }
+
         await _db.SaveChangesAsync();
         return Ok(MapToDto(ad, _storage, Request));
     }

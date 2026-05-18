@@ -66,7 +66,24 @@ public class RequestsController : ControllerBase
     }
 
     [HttpPut("{id:guid}/accept")]
-    public async Task<IActionResult> Accept(Guid id) => await UpdateStatus(id, LendRequestStatus.Accepted);
+    public async Task<IActionResult> Accept(Guid id)
+    {
+        var request = await _db.LendRequests
+            .Include(r => r.Ad)
+            .Include(r => r.Requester)
+            .FirstOrDefaultAsync(r => r.Id == id);
+
+        if (request is null) return NotFound();
+        if (request.Ad.OwnerId != GetCurrentUserId()) return Forbid();
+        if (request.Status != LendRequestStatus.Pending) return BadRequest("Verzoek is al verwerkt.");
+
+        request.Status = LendRequestStatus.Accepted;
+        request.Ad.IsAvailable = false;
+        request.Ad.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return Ok(MapToDto(request));
+    }
 
     [HttpPut("{id:guid}/decline")]
     public async Task<IActionResult> Decline(Guid id) => await UpdateStatus(id, LendRequestStatus.Declined);
