@@ -16,6 +16,15 @@ public class NotifyController : ControllerBase
 
     public NotifyController(AppDbContext db) => _db = db;
 
+    [HttpGet("{adId:guid}")]
+    public async Task<IActionResult> IsSubscribed(Guid adId)
+    {
+        var userId = GetCurrentUserId();
+        var exists = await _db.NotifySubscriptions
+            .AnyAsync(n => n.AdId == adId && n.UserId == userId);
+        return exists ? Ok() : NotFound();
+    }
+
     [HttpPost("{adId:guid}")]
     public async Task<IActionResult> Subscribe(Guid adId)
     {

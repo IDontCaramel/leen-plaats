@@ -128,9 +128,15 @@
         _photoIndex = 0;
         _actionMessage = null;
         _lendUntil = null;
+        _subscribed = false;
+
         if (Auth.IsAuthenticated && Auth.UserId == Ad.OwnerId.ToString())
         {
             _requests = await AdSvc.GetRequestsForAdAsync(Ad.Id);
+        }
+        else if (Auth.IsAuthenticated && !Ad.IsAvailable)
+        {
+            _subscribed = await NotifySvc.IsSubscribedAsync(Ad.Id);
         }
     }
 

@@ -13,6 +13,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
     public DbSet<Photo> Photos => Set<Photo>();
     public DbSet<LendRequest> LendRequests => Set<LendRequest>();
     public DbSet<NotifySubscription> NotifySubscriptions => Set<NotifySubscription>();
+    public DbSet<UserPushSubscription> UserPushSubscriptions => Set<UserPushSubscription>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -52,6 +53,16 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
              .WithMany(u => u.NotifySubscriptions)
              .HasForeignKey(n => n.UserId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<UserPushSubscription>(e =>
+        {
+            e.HasOne(s => s.User)
+             .WithMany(u => u.UserPushSubscriptions)
+             .HasForeignKey(s => s.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(s => new { s.UserId, s.Endpoint }).IsUnique();
         });
     }
 }

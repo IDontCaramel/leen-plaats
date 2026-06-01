@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Server.Data;
 using Server.DTOs;
 using Server.Models;
+using Server.Services;
 
 namespace Server.Controllers;
 
@@ -14,8 +15,13 @@ namespace Server.Controllers;
 public class RequestsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly PushNotificationService _push;
 
-    public RequestsController(AppDbContext db) => _db = db;
+    public RequestsController(AppDbContext db, PushNotificationService push)
+    {
+        _db = db;
+        _push = push;
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetMyRequests()
@@ -61,6 +67,11 @@ public class RequestsController : ControllerBase
 
         await _db.Entry(request).Reference(r => r.Ad).LoadAsync();
         await _db.Entry(request).Reference(r => r.Requester).LoadAsync();
+
+        await _push.SendToUserAsync(
+            request.Ad.OwnerId,
+            $"Nieuw leenverzoek voor {request.Ad.Title}",
+            $"{request.Requester.DisplayName} wil dit item lenen.");
 
         return CreatedAtAction(nameof(GetMyRequests), MapToDto(request));
     }

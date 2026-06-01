@@ -2,3 +2,18 @@
 // This is because caching would make development more difficult (changes would not
 // be reflected on the first load after each change).
 self.addEventListener('fetch', () => { });
+
+self.addEventListener('push', event => {
+    const data = event.data?.json() ?? { title: 'Leenplaats', body: '' };
+    event.waitUntil(
+        self.registration.showNotification(data.title, {
+            body: data.body,
+            icon: '/icon-192.png'
+        })
+    );
+});
+
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+    event.waitUntil(clients.openWindow('/'));
+});

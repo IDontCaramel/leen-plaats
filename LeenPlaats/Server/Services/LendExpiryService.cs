@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Server.Data;
 using Server.Models;
+using Server.Services;
 
 namespace Server.Services;
 
@@ -28,6 +29,7 @@ public class LendExpiryService : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var push = scope.ServiceProvider.GetRequiredService<PushNotificationService>();
 
         var expired = await db.LendRequests
             .Include(r => r.Ad)
@@ -43,6 +45,15 @@ public class LendExpiryService : BackgroundService
         {
             request.Ad.IsAvailable = true;
             request.Ad.UpdatedAt = DateTime.UtcNow;
+
+            foreach (var sub in request.Ad.NotifySubscriptions)
+            {
+                await push.SendToUserAsync(
+                    sub.UserId,
+                    $"{request.Ad.Title} is weer beschikbaar!",
+                    "Stuur nu een leenverzoek.");
+            }
+
             db.NotifySubscriptions.RemoveRange(request.Ad.NotifySubscriptions);
             _logger.LogInformation("Ad {AdId} restored after lend expiry (LendUntil: {LendUntil}).",
                 request.AdId, request.LendUntil);

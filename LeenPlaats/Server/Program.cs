@@ -12,7 +12,16 @@ Env.TraversePath().Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+        options.InvalidModelStateResponseFactory = ctx =>
+        {
+            var errors = ctx.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+            return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(errors);
+        });
 builder.Services.AddOpenApi();
 
 // Database
@@ -62,6 +71,7 @@ builder.Services.AddAuthorization();
 
 // Static files for photo uploads
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddScoped<PushNotificationService>();
 builder.Services.AddHostedService<LendExpiryService>();
 
 // CORS — allow the Blazor client in development
@@ -79,7 +89,8 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseCors();
 app.UseAuthentication();
@@ -92,6 +103,7 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+    await DatabaseSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 app.Run();

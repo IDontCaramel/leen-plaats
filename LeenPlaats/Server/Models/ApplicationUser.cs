@@ -8,4 +8,5 @@ public class ApplicationUser : IdentityUser<Guid>
     public ICollection<Ad> Ads { get; set; } = [];
     public ICollection<LendRequest> LendRequests { get; set; } = [];
     public ICollection<NotifySubscription> NotifySubscriptions { get; set; } = [];
+    public ICollection<UserPushSubscription> UserPushSubscriptions { get; set; } = [];
 }
