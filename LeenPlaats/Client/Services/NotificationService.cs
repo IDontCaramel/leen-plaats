@@ -47,7 +47,7 @@ public class NotificationService
         await _js.InvokeVoidAsync("unsubscribeFromPush");
     }
 
-    private async Task EnsurePushRegisteredAsync()
+    public async Task EnsurePushRegisteredAsync()
     {
         if (_vapidPublicKey is null)
             _vapidPublicKey = await FetchVapidPublicKeyAsync();

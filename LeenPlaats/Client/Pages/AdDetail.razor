@@ -149,6 +149,7 @@
         _actionLoading = true;
         try
         {
+            _ = NotifySvc.EnsurePushRegisteredAsync();
             await AdSvc.CreateLendRequestAsync(new CreateLendRequestDto(Ad!.Id, null, _lendUntil));
             _actionMessage = "Verzoek verstuurd!";
         }
